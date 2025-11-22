@@ -12,3 +12,7 @@
     mark_cart_as_abondoned_job:
       every: 1 minutes
       class: MarkCartAsAbandonedJob
+    remove_abandoned_carts_job:
+      every: 1 day
+      class: RemoveAbandonedCartsJob
+

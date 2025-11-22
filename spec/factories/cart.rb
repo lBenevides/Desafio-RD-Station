@@ -7,5 +7,11 @@ FactoryBot.define do
     factory :shopping_cart do
 
     end
+
+    factory :abandoned_cart do
+      status { 'abandoned' }
+      last_interaction_at { 7.days.ago }
+
+    end
   end
 end
