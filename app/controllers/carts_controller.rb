@@ -13,22 +13,22 @@ class CartsController < ApplicationController
 
   def create
     quantity = cart_params[:quantity]
-    cart_products = @cart.cart_products.build(product: @product, quantity: quantity)
+    cart_items = @cart.cart_items.build(product: @product, quantity: quantity)
 
-    if cart_products.save
+    if cart_items.save
       @cart.save
       render json: formatted_response(@cart), status: :created
     else
-      render json: { errors: cart_products.errors }, status: :unprocessable_entity
+      render json: { errors: cart_items.errors }, status: :unprocessable_entity
     end
   end
 
   def add_item
     quantity = cart_params[:quantity]
 
-    cart_products =  @cart.cart_products.find_by(product: @product)
+    cart_items =  @cart.cart_items.find_by(product: @product)
 
-    if cart_products&.increment!(:quantity, quantity)
+    if cart_items&.increment!(:quantity, quantity)
       @cart.save
       render json: formatted_response(@cart), status: :ok
     else
@@ -41,14 +41,14 @@ class CartsController < ApplicationController
   end
 
   def remove_product
-    product = @cart.cart_products.find_by(product_id: params[:product_id])
+    product = @cart.cart_items.find_by(product_id: params[:product_id])
 
     if product
       product.destroy
       @cart.save
 
       render json: formatted_response(@cart), status: :ok
-    elseadad
+    else
       render json: { error: 'Produto não encontrado' }, status: :not_found
     end
   end
@@ -83,13 +83,13 @@ class CartsController < ApplicationController
   def formatted_response(cart)
     {
       id: cart.id,
-      products: formated_cart_product(cart.cart_products),
+      products: formated_cart_items(cart.cart_items),
       total_price: cart.total_price
     }
   end
 
-  def formated_cart_product(cart_products)
-    cart_products.map do |p|
+  def formated_cart_items(cart_items)
+    cart_items.map do |p|
       {
         id: p.product.id,
         name: p.product.name,

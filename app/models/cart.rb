@@ -11,7 +11,7 @@ class Cart < ApplicationRecord
   enum status: { active: 0, abandoned: 1 }
 
   def calculate_total_price
-    self.total_price = cart_products.sum do |item|
+    self.total_price = cart_items.sum do |item|
       item.product.price * item.quantity
     end
   end
