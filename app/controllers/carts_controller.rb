@@ -3,6 +3,7 @@ class CartsController < ApplicationController
   before_action :get_session, except: [:create]
 
   before_action :validate_product, only: [:create, :add_item]
+  before_action :validate_quantity, only: [:create, :add_item]
 
   # As actions de create/add_item são parecidas e estao com logicas quase duplicadas. Acharia melhoror unificar as duas, 
   # porem o desafio me deixou em duvida se eu poderia adicionar logica de criar a sessão em outras
@@ -12,8 +13,7 @@ class CartsController < ApplicationController
   #
 
   def create
-    quantity = cart_params[:quantity]
-    cart_items = @cart.cart_items.build(product: @product, quantity: quantity)
+    cart_items = @cart.cart_items.build(product: @product, quantity: @quantity)
 
     if cart_items.save
       @cart.save
@@ -24,12 +24,11 @@ class CartsController < ApplicationController
   end
 
   def add_item
-    quantity = cart_params[:quantity]
-
     cart_items =  @cart.cart_items.find_by(product: @product)
 
-    if cart_items&.increment!(:quantity, quantity)
-      @cart.save
+    if cart_items&.increment(:quantity, @quantity)
+      cart_items.save
+      @cart.save # isto é necessario para fazer com que o total_price seja atualizado
       render json: formatted_response(@cart), status: :ok
     else
       render json: { error: 'Produto não encontrado' }, status: :not_found
@@ -57,17 +56,19 @@ class CartsController < ApplicationController
 
   def set_session
     if session[:cart_id]
-      @cart = Cart.find(session[:cart_id])
-    else
+      @cart = Cart.find_by(id: session[:cart_id])
+    end
+
+    if @cart.blank?
       @cart = Cart.create(total_price: 0)
       session[:cart_id] = @cart.id
     end
   end
 
   def get_session
-    return render json: { error: 'Carrinho não encontrado' }, status: :not_found unless session[:cart_id]
+    @cart = Cart.find_by(id: session[:cart_id]) 
 
-    @cart = Cart.find(session[:cart_id]) 
+    return render json: { error: 'Carrinho não encontrado' }, status: :not_found unless @cart
   end
 
   def cart_params
@@ -78,6 +79,12 @@ class CartsController < ApplicationController
     @product = Product.find_by(id: cart_params[:product_id])
 
     return render json: { error: 'Produto não encontrado' }, status: :not_found unless @product
+  end
+
+  def validate_quantity
+    @quantity = cart_params[:quantity].to_i
+
+    return render json: { error: 'Quantidade deve ser maior que 0' }, status: :not_found unless @quantity > 0
   end
 
   def formatted_response(cart)
