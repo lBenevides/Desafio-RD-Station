@@ -118,7 +118,7 @@ RSpec.describe "/carts", type: :request do
     end
   end
 
-  describe "delete /cart/:product_id" do
+  describe "DELETE /cart/:product_id" do
     let(:cart) { Cart.create(total_price: 0) }
     let(:product) { Product.create(name: "Test Product", price: 10.0) }
     let(:product_2) { Product.create(name: "Test Product 2", price: 16.0) }
