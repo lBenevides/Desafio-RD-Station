@@ -1,24 +1,43 @@
 class CartsController < ApplicationController
-  before_action :set_session, only: [:create, :show, :remove_product]
+  before_action :set_session, only: [:create]
+  before_action :get_session, except: [:create]
 
-  ## TODO Escreva a lógica dos carrinhos aqui
+  before_action :validate_product, only: [:create, :add_item]
+
+  # As actions de create/add_item são parecidas e estao com logicas quase duplicadas. Acharia melhoror unificar as duas, 
+  # porem o desafio me deixou em duvida se eu poderia adicionar logica de criar a sessão em outras
+  # actions alem do endpoint de POST cart
+  # A descrição tambem deixa em duvida se no POST cart eu poderia incrementar a quantia de produtos, 
+  # entao optei por apenas retornar erro de que o produto ja existe
+  #
 
   def create
-      product = Product.find(cart_params[:product_id])
-      quantity = cart_params[:quantity]
-      cart_products = @cart.cart_products.find_or_initialize_by(product: product)
+    quantity = cart_params[:quantity]
+    cart_products = @cart.cart_products.build(product: @product, quantity: quantity)
 
-      cart_products.increment!(:quantity, quantity)
+    if cart_products.save
+      @cart.save
+      render json: formatted_response(@cart), status: :created
+    else
+      render json: { errors: cart_products.errors }, status: :unprocessable_entity
+    end
+  end
 
-      if @cart.save
-        render json: formatted_response(@cart)
-      else
-        render json: @cart.errors, status: :unprocessable_entity
-      end
+  def add_item
+    quantity = cart_params[:quantity]
+
+    cart_products =  @cart.cart_products.find_by(product: @product)
+
+    if cart_products&.increment!(:quantity, quantity)
+      @cart.save
+      render json: formatted_response(@cart), status: :ok
+    else
+      render json: { error: 'Produto não encontrado' }, status: :not_found
+    end
   end
 
   def show
-    render json: formatted_response(@cart)
+    render json: formatted_response(@cart), status: :ok
   end
 
   def remove_product
@@ -27,9 +46,10 @@ class CartsController < ApplicationController
     if product
       product.destroy
       @cart.save
+
       render json: formatted_response(@cart), status: :ok
-    else
-      render json: { error: 'Produto não encontrado' }, status: :unprocessable_entity
+    elseadad
+      render json: { error: 'Produto não encontrado' }, status: :not_found
     end
   end
 
@@ -44,8 +64,20 @@ class CartsController < ApplicationController
     end
   end
 
+  def get_session
+    return render json: { error: 'Carrinho não encontrado' }, status: :not_found unless session[:cart_id]
+
+    @cart = Cart.find(session[:cart_id]) 
+  end
+
   def cart_params
     params.permit(:product_id, :quantity)
+  end
+
+  def validate_product
+    @product = Product.find_by(id: cart_params[:product_id])
+
+    return render json: { error: 'Produto não encontrado' }, status: :not_found unless @product
   end
 
   def formatted_response(cart)

@@ -8,7 +8,7 @@ Rails.application.routes.draw do
   root "rails/health#show"
 
   post 'cart', to: "carts#create"
-  post 'cart/add_item', to: "carts#create"
+  post 'cart/add_item', to: "carts#add_item"
   get 'cart', to: "carts#show"
   delete 'cart/:product_id', to: "carts#remove_product"
 end
